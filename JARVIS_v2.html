@@ -1,0 +1,2496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JARVIS | DHL Kraft Heinz</title>
+  <style>
+    :root{
+      --yellow:#ffcc00;
+      --red:#d40511;
+      --blue:#5ce7ff;
+      --blue-soft:rgba(92,231,255,.14);
+      --green:#57e39a;
+      --ink:#040a11;
+      --panel:rgba(8,20,32,.78);
+      --text:#f4f9fc;
+      --muted:#8ea5b7;
+    }
+
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{width:100%;height:100%;overflow:hidden}
+    body{
+      font-family:"Segoe UI",Arial,sans-serif;
+      background:
+        radial-gradient(circle at 50% 45%,rgba(32,121,158,.18),transparent 28%),
+        radial-gradient(circle at 50% 120%,rgba(255,204,0,.08),transparent 38%),
+        #040a11;
+      color:var(--text);
+    }
+
+    button{font:inherit}
+
+    .app{
+      position:relative;
+      width:100vw;
+      height:100vh;
+      overflow:hidden;
+      isolation:isolate;
+    }
+
+    /* FONDO */
+    .grid{
+      position:absolute;
+      inset:-20%;
+      opacity:.2;
+      background-image:
+        linear-gradient(rgba(92,231,255,.07) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(92,231,255,.07) 1px,transparent 1px);
+      background-size:48px 48px;
+      transform:perspective(800px) rotateX(63deg) translateY(18%);
+      transform-origin:center bottom;
+      animation:gridDrift 18s linear infinite;
+      z-index:-5;
+    }
+
+    @keyframes gridDrift{
+      to{background-position:0 48px,48px 0}
+    }
+
+    .noise{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      opacity:.12;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          transparent 0,
+          transparent 3px,
+          rgba(255,255,255,.025) 4px
+        );
+      z-index:20;
+    }
+
+    .scan{
+      position:absolute;
+      left:0;right:0;top:-18%;
+      height:18%;
+      background:linear-gradient(to bottom,transparent,rgba(92,231,255,.08),transparent);
+      animation:scan 8s linear infinite;
+      pointer-events:none;
+      z-index:12;
+    }
+
+    @keyframes scan{to{transform:translateY(700%)}}
+
+    .corner{
+      position:absolute;
+      width:70px;height:70px;
+      border-color:rgba(92,231,255,.34);
+      z-index:5;
+    }
+    .corner.tl{top:20px;left:20px;border-top:2px solid;border-left:2px solid}
+    .corner.tr{top:20px;right:20px;border-top:2px solid;border-right:2px solid}
+    .corner.bl{bottom:20px;left:20px;border-bottom:2px solid;border-left:2px solid}
+    .corner.br{bottom:20px;right:20px;border-bottom:2px solid;border-right:2px solid}
+
+    /* CABECERA */
+    .topbar{
+      position:absolute;
+      top:0;left:0;right:0;
+      height:86px;
+      display:grid;
+      grid-template-columns:1fr auto 1fr;
+      align-items:center;
+      padding:0 34px;
+      z-index:10;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:18px;
+      min-width:390px;
+      height:86px;
+    }
+    
+    /*
+      Cada logo vive dentro de un espacio independiente.
+      Cambiar Kraft ya no modifica ni desplaza  el logo de DHL.
+    */
+
+    .logo-slot{
+      position:relative;
+      height:86px;
+      flex:0 0 auto;
+      overflow:visible;
+    }
+
+    .logo-slot-dhl{
+      margin-top: 50px;
+      height: 150px;
+      width:145px;
+    }
+
+    .logo-slot-kraft{
+      margin-top: 35px;
+      height: 160px;
+      width:125px;
+    }
+
+    .logo-dhl,
+    .logo-kraft{
+      position:absolute;
+      left:50%;
+      top:50%;
+      display:block;
+      width:auto;
+      max-width:none;
+      object-fit:contain;
+      user-select:none;
+      pointer-events:none;
+      opacity:0;
+      transform:translate(-50%, -50%);
+    }
+
+    .logo-dhl{
+      height:90px; /* TAMAÑO INDEPENDIENTE DHL */
+      animation:
+        logoIntroDhl 1.05s ease forwards,
+        dhlGlow 6s ease-in-out 1.1s infinite;
+      filter:drop-shadow(0 0 8px rgba(255,204,0,.24));
+    }
+
+    .logo-kraft{
+      height:175px; /* TAMAÑO INDEPENDIENTE KRAFT */
+      animation:
+        logoIntroKraft 1.05s ease .14s forwards,
+        kraftGlow 7s ease-in-out 1.3s infinite;
+      filter:drop-shadow(0 0 8px rgba(92,231,255,.10));
+    }
+
+    /*
+      POSICIÓN VERTICAL INDEPENDIENTE
+      Cambia únicamente el segundo valor:
+
+      -50%  = centro
+      -60%  = más arriba
+      -40%  = más abajo
+    */
+    .logo-dhl{
+      transform:translate(-50%, -50%);
+    }
+
+    .logo-kraft{
+      transform:translate(-50%, -50%);
+    }
+
+    @keyframes logoIntroDhl{
+      0%{
+        opacity:0;
+        transform:translate(calc(-50% - 22px), -50%);
+      }
+      60%{
+        opacity:1;
+        transform:translate(calc(-50% + 4px), -50%);
+      }
+      100%{
+        opacity:1;
+        transform:translate(-50%, -50%);
+      }
+    }
+
+    @keyframes logoIntroKraft{
+      0%{
+        opacity:0;
+        transform:translate(calc(-50% - 22px), -50%);
+      }
+      60%{
+        opacity:1;
+        transform:translate(calc(-50% + 4px), -50%);
+      }
+      100%{
+        opacity:1;
+        transform:translate(-50%, -50%);
+      }
+    }
+
+    @keyframes dhlGlow{
+      0%,100%{
+        filter:drop-shadow(0 0 6px rgba(255,204,0,.16));
+      }
+      50%{
+        filter:drop-shadow(0 0 16px rgba(255,204,0,.35));
+      }
+    }
+
+    @keyframes kraftGlow{
+      0%,100%{
+        filter:drop-shadow(0 0 5px rgba(92,231,255,.06));
+      }
+      50%{
+        filter:drop-shadow(0 0 12px rgba(92,231,255,.16));
+      }
+    }
+
+    .system-name{
+      text-align:center;
+    }
+
+    .system-name strong{
+      display:block;
+      font-size:18px;
+      letter-spacing:7px;
+      color:#fff;
+    }
+
+    .system-name span{
+      display:block;
+      margin-top:6px;
+      color:var(--blue);
+      font-size:10px;
+      letter-spacing:3px;
+      text-transform:uppercase;
+    }
+
+    .top-status{
+      justify-self:end;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .online-dot{
+      width:9px;height:9px;border-radius:50%;
+      background:var(--green);
+      box-shadow:0 0 14px var(--green);
+      animation:blink 1.7s ease-in-out infinite;
+    }
+
+    @keyframes blink{50%{opacity:.35;transform:scale(.75)}}
+
+    /* ESCENA CENTRAL */
+    .scene{
+      position:absolute;
+      inset:86px 0 96px;
+      display:grid;
+      place-items:center;
+    }
+
+    .network{
+      position:relative;
+      width:min(720px,72vw);
+      aspect-ratio:1.35;
+      display:grid;
+      place-items:center;
+      filter:drop-shadow(0 0 22px rgba(92,231,255,.12));
+    }
+
+    .network::before{
+      content:"";
+      position:absolute;
+      inset:12%;
+      border:1px solid rgba(92,231,255,.12);
+      clip-path:polygon(50% 0,92% 25%,92% 75%,50% 100%,8% 75%,8% 25%);
+      animation:framePulse 4s ease-in-out infinite;
+    }
+
+    @keyframes framePulse{
+      50%{opacity:.35;transform:scale(1.025)}
+    }
+
+    svg.connections{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      overflow:visible;
+    }
+
+    .line{
+      fill:none;
+      stroke:rgba(92,231,255,.24);
+      stroke-width:1.2;
+      stroke-dasharray:6 9;
+      animation:dash 8s linear infinite;
+    }
+
+    .line.hot{
+      stroke:rgba(255,204,0,.38);
+      animation-duration:5s;
+    }
+
+    @keyframes dash{to{stroke-dashoffset:-120}}
+
+    .pulse-path{
+      fill:none;
+      stroke:var(--blue);
+      stroke-width:2;
+      stroke-linecap:round;
+      stroke-dasharray:12 220;
+      filter:drop-shadow(0 0 5px var(--blue));
+      animation:signal 4s linear infinite;
+    }
+
+    .pulse-path.two{animation-delay:-1.3s}
+    .pulse-path.three{animation-delay:-2.5s;stroke:var(--yellow)}
+
+    @keyframes signal{to{stroke-dashoffset:-232}}
+
+    /* CEREBRO LOGÍSTICO */
+    .core{
+      position:relative;
+      width:230px;
+      height:230px;
+      display:grid;
+      place-items:center;
+      z-index:5;
+    }
+
+    .core-ring{
+      position:absolute;
+      border-radius:28%;
+      border:1px solid rgba(92,231,255,.35);
+    }
+
+    .core-ring.a{
+      inset:0;
+      transform:rotate(45deg);
+      animation:spinA 18s linear infinite;
+    }
+    .core-ring.b{
+      inset:28px;
+      border-color:rgba(255,204,0,.34);
+      transform:rotate(45deg);
+      animation:spinB 12s linear infinite;
+    }
+    .core-ring.c{
+      inset:58px;
+      border-width:2px;
+      border-color:rgba(92,231,255,.65);
+      transform:rotate(45deg);
+      animation:spinA 7s linear infinite reverse;
+    }
+
+    @keyframes spinA{to{transform:rotate(405deg)}}
+    @keyframes spinB{to{transform:rotate(-315deg)}}
+
+    .core-center{
+      position:relative;
+      width:88px;height:88px;
+      display:grid;
+      place-items:center;
+      background:
+        linear-gradient(135deg,rgba(92,231,255,.16),rgba(255,204,0,.08)),
+        rgba(4,12,20,.9);
+      border:1px solid rgba(92,231,255,.75);
+      transform:rotate(45deg);
+      box-shadow:
+        0 0 28px rgba(92,231,255,.24),
+        inset 0 0 22px rgba(92,231,255,.10);
+      animation:coreBeat 2.4s ease-in-out infinite;
+    }
+
+    .core-center span{
+      transform:rotate(-45deg);
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:2px;
+    }
+
+    @keyframes coreBeat{
+      50%{
+        box-shadow:
+          0 0 48px rgba(92,231,255,.42),
+          inset 0 0 28px rgba(92,231,255,.16);
+        transform:rotate(45deg) scale(1.055);
+      }
+    }
+
+    .core.speaking .core-center{
+      animation:talk .42s ease-in-out infinite alternate;
+    }
+
+    @keyframes talk{
+      to{
+        transform:rotate(45deg) scale(1.11);
+        box-shadow:0 0 58px rgba(92,231,255,.58);
+      }
+    }
+
+    .cube{
+      position:absolute;
+      width:20px;height:20px;
+      background:rgba(92,231,255,.18);
+      border:1px solid rgba(92,231,255,.55);
+      transform:rotate(45deg);
+      box-shadow:0 0 12px rgba(92,231,255,.18);
+      animation:floatCube 4s ease-in-out infinite;
+    }
+
+    .cube.c1{top:18px;left:50%;margin-left:-10px}
+    .cube.c2{right:20px;top:50%;margin-top:-10px;animation-delay:-1s}
+    .cube.c3{bottom:18px;left:50%;margin-left:-10px;animation-delay:-2s}
+    .cube.c4{left:20px;top:50%;margin-top:-10px;animation-delay:-3s}
+
+    @keyframes floatCube{
+      50%{transform:rotate(135deg) translateY(-6px);background:rgba(255,204,0,.18)}
+    }
+
+    /* NODOS */
+    .node{
+      position:absolute;
+      width:150px;
+      min-height:78px;
+      padding:14px 16px;
+      border:1px solid rgba(92,231,255,.24);
+      background:linear-gradient(145deg,rgba(11,27,42,.84),rgba(5,14,24,.88));
+      color:var(--text);
+      text-align:left;
+      cursor:pointer;
+      clip-path:polygon(0 0,90% 0,100% 22%,100% 100%,10% 100%,0 78%);
+      transition:.28s ease;
+      backdrop-filter:blur(10px);
+      z-index:6;
+      opacity:0;
+      animation:nodeIn .75s ease forwards;
+    }
+
+    .node::before{
+      content:"";
+      position:absolute;
+      left:14px;right:14px;top:0;
+      height:2px;
+      background:linear-gradient(90deg,transparent,var(--blue),transparent);
+    }
+
+    .node:hover,.node:focus-visible{
+      transform:translateY(-6px) scale(1.035);
+      border-color:rgba(92,231,255,.75);
+      box-shadow:0 12px 34px rgba(0,0,0,.36),0 0 24px rgba(92,231,255,.12);
+      outline:none;
+    }
+
+    .node strong{
+      display:block;
+      font-size:14px;
+      letter-spacing:.4px;
+    }
+
+    .node span{
+      display:block;
+      margin-top:7px;
+      color:var(--muted);
+      font-size:10px;
+      letter-spacing:1.3px;
+      text-transform:uppercase;
+    }
+
+    .node.n1{left:1%;top:6%;animation-delay:.15s}
+    .node.n2{right:1%;top:6%;animation-delay:.3s}
+    .node.n3{left:-2%;top:43%;animation-delay:.45s}
+    .node.n4{right:-2%;top:43%;animation-delay:.6s}
+    .node.n5{left:8%;bottom:3%;animation-delay:.75s}
+    .node.n6{right:8%;bottom:3%;animation-delay:.9s}
+
+    @keyframes nodeIn{
+      from{opacity:0;filter:blur(8px);transform:scale(.8)}
+      to{opacity:1;filter:blur(0);transform:scale(1)}
+    }
+
+    /* MENSAJE */
+    .message{
+      position:absolute;
+      left:50%;
+      bottom:6px;
+      transform:translateX(-50%);
+      width:min(760px,86vw);
+      text-align:center;
+      z-index:9;
+    }
+
+    .message-label{
+      color:var(--blue);
+      font-size:10px;
+      letter-spacing:3px;
+      text-transform:uppercase;
+    }
+
+    .message-text{
+      min-height:58px;
+      margin-top:10px;
+      font-size:clamp(18px,2vw,28px);
+      font-weight:300;
+      line-height:1.35;
+      text-shadow:0 0 20px rgba(92,231,255,.12);
+      opacity:1;
+      transition:opacity .45s ease,transform .45s ease;
+    }
+
+    .message-text.hide{
+      opacity:0;
+      transform:translateY(8px);
+    }
+
+    /* PIE */
+    .footer{
+      position:absolute;
+      left:32px;right:32px;bottom:22px;
+      height:54px;
+      display:grid;
+      grid-template-columns:1fr auto 1fr;
+      align-items:center;
+      color:var(--muted);
+      font-size:11px;
+      letter-spacing:1.5px;
+      text-transform:uppercase;
+      z-index:10;
+    }
+
+    .footer .clock{
+      justify-self:center;
+      color:#fff;
+      font-size:20px;
+      font-weight:300;
+      letter-spacing:3px;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .footer .right{justify-self:end}
+
+    .voice-button{
+      position:absolute;
+      right:32px;
+      bottom:84px;
+      min-width:132px;
+      height:42px;
+      border:1px solid rgba(92,231,255,.35);
+      background:rgba(8,20,32,.78);
+      color:var(--text);
+      cursor:pointer;
+      clip-path:polygon(0 0,88% 0,100% 50%,88% 100%,0 100%);
+      z-index:12;
+      transition:.2s ease;
+    }
+
+    .voice-button:hover{
+      background:rgba(92,231,255,.12);
+      border-color:var(--blue);
+    }
+
+
+    /* BOTÓN DIÁLOGO TÁCTICO */
+    .dialog-button{
+      position:absolute;
+      right:32px;
+      bottom:136px;
+      min-width:170px;
+      height:42px;
+      padding:0 22px;
+      border:1px solid rgba(255,204,0,.48);
+      background:
+        linear-gradient(90deg,rgba(255,204,0,.10),rgba(8,20,32,.88));
+      color:var(--text);
+      cursor:pointer;
+      clip-path:polygon(0 0,88% 0,100% 50%,88% 100%,0 100%);
+      z-index:12;
+      transition:.2s ease;
+    }
+
+    .dialog-button:hover,
+    .dialog-button:focus-visible{
+      background:rgba(255,204,0,.16);
+      border-color:var(--yellow);
+      box-shadow:0 0 20px rgba(255,204,0,.12);
+      outline:none;
+    }
+
+    /* VENTANA SUPERPUESTA DEL DIÁLOGO TÁCTICO */
+    .dialog-overlay{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      padding:20px;
+      background:rgba(1,6,11,.82);
+      backdrop-filter:blur(10px);
+      z-index:45;
+      opacity:0;
+      visibility:hidden;
+      transition:opacity .3s ease,visibility .3s ease;
+    }
+
+    .dialog-overlay.open{
+      opacity:1;
+      visibility:visible;
+    }
+
+    .dialog-window{
+      position:relative;
+      width:min(1450px,95vw);
+      height:min(860px,92vh);
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      background:rgba(4,12,20,.98);
+      border:1px solid rgba(92,231,255,.34);
+      box-shadow:
+        0 30px 80px rgba(0,0,0,.58),
+        0 0 28px rgba(92,231,255,.10);
+      clip-path:polygon(0 0,97% 0,100% 5%,100% 100%,3% 100%,0 95%);
+      transform:scale(.96);
+      transition:transform .3s ease;
+      overflow:hidden;
+    }
+
+    .dialog-overlay.open .dialog-window{
+      transform:scale(1);
+    }
+
+    .dialog-header{
+      height:58px;
+      flex:0 0 58px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:0 6px 10px 12px;
+      border-bottom:1px solid rgba(92,231,255,.18);
+    }
+
+    .dialog-title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .dialog-title strong{
+      color:#fff;
+      font-size:16px;
+      letter-spacing:2px;
+      text-transform:uppercase;
+    }
+
+    .dialog-title span{
+      color:var(--muted);
+      font-size:9px;
+      letter-spacing:1.8px;
+      text-transform:uppercase;
+    }
+
+    .dialog-close{
+      width:46px;
+      height:46px;
+      border:1px solid rgba(92,231,255,.32);
+      background:rgba(92,231,255,.04);
+      color:#fff;
+      cursor:pointer;
+      font-size:26px;
+      line-height:1;
+      transition:.2s ease;
+    }
+
+    .dialog-close:hover,
+    .dialog-close:focus-visible{
+      color:#fff;
+      border-color:var(--red);
+      background:rgba(212,5,17,.75);
+      outline:none;
+    }
+
+    .dialog-content{
+      position:relative;
+      flex:1;
+      min-height:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+      overflow:auto;
+      background:
+        radial-gradient(circle at 50% 50%,rgba(92,231,255,.04),transparent 45%),
+        rgba(2,8,14,.62);
+      touch-action:pan-x pan-y pinch-zoom;
+    }
+
+    .dialog-image{
+      display:block;
+      max-width:100%;
+      max-height:100%;
+      width:auto;
+      height:auto;
+      object-fit:contain;
+      border:1px solid rgba(255,204,0,.56);
+      box-shadow:
+        0 0 34px rgba(255,204,0,.10),
+        0 16px 50px rgba(0,0,0,.30);
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
+    .dialog-loading{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      color:var(--muted);
+      font-size:11px;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      pointer-events:none;
+      transition:opacity .25s ease;
+    }
+
+    .dialog-loading.hidden{
+      opacity:0;
+    }
+
+    @media(max-width:560px){
+      .dialog-button{
+        right:16px;
+        bottom:128px;
+        min-width:150px;
+      }
+
+      .dialog-overlay{
+        padding:7px;
+      }
+
+      .dialog-window{
+        width:98vw;
+        height:95vh;
+        padding:9px;
+      }
+
+      .dialog-header{
+        height:52px;
+        flex-basis:52px;
+      }
+
+      .dialog-title strong{
+        font-size:13px;
+      }
+
+      .dialog-title span{
+        font-size:8px;
+      }
+
+      .dialog-close{
+        width:42px;
+        height:42px;
+      }
+    }
+
+    /* PANTALLA DE INICIO */
+    .boot{
+      position:absolute;
+      inset:0;
+      display:grid;
+      place-items:center;
+      background:#03080e;
+      z-index:50;
+      transition:opacity .9s ease,visibility .9s ease;
+    }
+
+    .boot.done{
+      opacity:0;
+      visibility:hidden;
+    }
+
+    .boot-box{
+      width:min(560px,82vw);
+      text-align:center;
+    }
+
+    .boot-title{
+      color:var(--yellow);
+      font-size:12px;
+      letter-spacing:5px;
+      text-transform:uppercase;
+    }
+
+    .boot-main{
+      margin-top:20px;
+      font-size:clamp(32px,6vw,64px);
+      font-weight:200;
+      letter-spacing:10px;
+    }
+
+    .boot-line{
+      position:relative;
+      height:3px;
+      margin-top:28px;
+      background:rgba(255,255,255,.08);
+      overflow:hidden;
+    }
+
+    .boot-line::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      width:0;
+      background:linear-gradient(90deg,var(--yellow),var(--red),var(--blue));
+      animation:load 2.8s ease forwards;
+    }
+
+    @keyframes load{to{width:100%}}
+
+    .boot-status{
+      margin-top:14px;
+      color:var(--muted);
+      font-size:11px;
+      letter-spacing:2px;
+      text-transform:uppercase;
+    }
+
+    /* PANEL DE MÓDULO */
+    .module-view{
+      position:absolute;
+      inset:86px 24px 86px;
+      padding:34px;
+      background:rgba(4,12,20,.95);
+      border:1px solid rgba(92,231,255,.24);
+      clip-path:polygon(0 0,97% 0,100% 5%,100% 100%,3% 100%,0 95%);
+      z-index:30;
+      opacity:0;
+      visibility:hidden;
+      transform:scale(.97);
+      transition:.35s ease;
+    }
+
+    .module-view.open{
+      opacity:1;
+      visibility:visible;
+      transform:scale(1);
+    }
+
+    .module-view h2{
+      font-size:clamp(28px,4vw,52px);
+      font-weight:300;
+      letter-spacing:2px;
+    }
+
+    .module-view p{
+      margin-top:12px;
+      max-width:700px;
+      color:var(--muted);
+      line-height:1.7;
+    }
+
+    .module-placeholder{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:18px;
+      margin-top:34px;
+    }
+
+    .placeholder-card{
+      min-height:130px;
+      padding:20px;
+      border:1px solid rgba(92,231,255,.18);
+      background:rgba(92,231,255,.04);
+    }
+
+    .placeholder-card strong{
+      display:block;
+      color:var(--blue);
+    }
+
+    .placeholder-card span{
+      display:block;
+      margin-top:12px;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .close-button{
+      position:absolute;
+      top:24px;right:28px;
+      width:44px;height:44px;
+      border:1px solid rgba(92,231,255,.28);
+      background:transparent;
+      color:#fff;
+      cursor:pointer;
+      font-size:22px;
+    }
+
+    @media(max-width:800px){
+      .topbar{padding:0 18px}
+      .network{width:94vw}
+      .node{width:126px;padding:11px}
+      .node span{display:none}
+      .node.n3{left:0}
+      .node.n4{right:0}
+      .footer{left:18px;right:18px}
+      .footer .left{display:none}
+      .module-placeholder{grid-template-columns:1fr}
+    }
+
+    @media(max-width:560px){
+      .brand{gap:8px;min-width:0;height:80px}
+      .logo-slot{height:80px}
+      .logo-slot-dhl{width:92px}
+      .logo-slot-kraft{width:130px}
+      .logo-dhl{height:42px}
+      .logo-kraft{height:58px}
+      .system-name strong{font-size:14px;letter-spacing:4px}
+      .top-status span{display:none}
+      .scene{inset:80px 0 110px}
+      .network{transform:scale(.84)}
+      .node{width:116px}
+      .node.n1,.node.n2{top:1%}
+      .node.n5,.node.n6{bottom:0}
+      .message{bottom:-6px}
+      .voice-button{right:16px;bottom:76px}
+      .safety-hud{
+        right:14px;
+        top:auto;
+        bottom:128px;
+        width:240px;
+        height:82px;
+        padding:0 26px 0 18px;
+      }
+      .safety-dot{width:10px;height:10px;margin-right:16px}
+      .safety-number{font-size:30px}
+      .safety-text{font-size:10px;letter-spacing:1.4px}
+    }
+  
+    /* ORBE CENTRAL */
+    .orb-shell{
+      position:relative;
+      width:320px;
+      height:320px;
+      display:grid;
+      place-items:center;
+      z-index:5;
+      border-radius:50%;
+    }
+
+    .orb-shell::before{
+      content:"";
+      position:absolute;
+      inset:12%;
+      border-radius:50%;
+      background:radial-gradient(circle,rgba(92,231,255,.10),transparent 66%);
+      filter:blur(20px);
+      animation:orbBreath 3.6s ease-in-out infinite;
+      pointer-events:none;
+    }
+
+    .orb-shell::after{
+      content:"";
+      position:absolute;
+      inset:2%;
+      border-radius:50%;
+      border:1px solid rgba(92,231,255,.10);
+      box-shadow:0 0 40px rgba(92,231,255,.08);
+      animation:ringBreath 4.8s ease-in-out infinite;
+      pointer-events:none;
+    }
+
+    #orbCanvas{
+      width:100%;
+      height:100%;
+      display:block;
+      border-radius:50%;
+    }
+
+    .orb-label{
+      position:absolute;
+      inset:0;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      pointer-events:none;
+      text-align:center;
+    }
+
+    .orb-label strong{
+      font-size:16px;
+      letter-spacing:6px;
+      text-shadow:0 0 18px rgba(92,231,255,.55);
+    }
+
+    .orb-label span{
+      margin-top:7px;
+      color:var(--blue);
+      font-size:10px;
+      letter-spacing:3px;
+    }
+
+    .orb-shell.speaking{
+      filter:drop-shadow(0 0 28px rgba(92,231,255,.28));
+    }
+
+    .orb-shell.speaking::before{
+      animation:orbSpeak .5s ease-in-out infinite alternate;
+    }
+
+    @keyframes orbBreath{
+      50%{transform:scale(1.06);opacity:.72}
+    }
+
+    @keyframes ringBreath{
+      50%{transform:scale(1.035);opacity:.38}
+    }
+
+    @keyframes orbSpeak{
+      to{transform:scale(1.2);opacity:1;filter:blur(12px)}
+    }
+
+    /* HUD DE SEGURIDAD A LA DERECHA */
+    .safety-hud{
+      position:absolute;
+      right:28px;
+      top:43%;
+      transform:translateY(-50%);
+      width:315px;
+      height:80px;
+      display:flex;
+      align-items:center;
+      padding:0 38px 0 26px;
+      color:#fff;
+      border:1px solid rgba(87,227,154,.62);
+      background:
+        linear-gradient(90deg,rgba(87,227,154,.10),rgba(8,20,32,.95) 62%),
+        rgba(8,20,32,.92);
+      box-shadow:
+        0 0 24px rgba(87,227,154,.10),
+        inset 0 0 18px rgba(87,227,154,.03);
+      clip-path:polygon(0 0,92% 0,100% 50%,92% 100%,0 100%);
+      z-index:11;
+      overflow:hidden;
+    }
+
+    .safety-hud::before{
+      content:"";
+      position:absolute;
+      top:0;
+      left:0;
+      width:100%;
+      height:2px;
+      background:linear-gradient(90deg,transparent,var(--green),transparent);
+      box-shadow:0 0 12px rgba(87,227,154,.55);
+      opacity:.9;
+    }
+
+    .safety-hud::after{
+      content:"";
+      position:absolute;
+      bottom:0;
+      right:8%;
+      width:46%;
+      height:2px;
+      background:linear-gradient(90deg,transparent,var(--green),transparent);
+      box-shadow:0 0 10px rgba(87,227,154,.42);
+      opacity:.75;
+    }
+
+    .safety-dot{
+      width:12px;
+      height:12px;
+      flex:0 0 auto;
+      margin-right:24px;
+      border-radius:50%;
+      background:var(--green);
+      box-shadow:0 0 16px var(--green);
+    }
+
+    .safety-number{
+      color:var(--green);
+      font-size:38px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:1px;
+      text-shadow:0 0 16px rgba(87,227,154,.30);
+    }
+
+    .safety-text{
+      margin-left:10px;
+      color:#fff;
+      font-size:13px;
+      line-height:1.2;
+      font-weight:600;
+      letter-spacing:2px;
+      text-transform:uppercase;
+      white-space:nowrap;
+    }
+
+    @media(max-width:560px){
+      .orb-shell{width:270px;height:270px}
+    }
+
+    /* =====================================================
+   EXPLORADOR WORK INSTRUCTIONS
+===================================================== */
+
+.wi-explorer{
+  width:min(920px,92%);
+  margin-top:28px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.wi-folder{
+  position:relative;
+  width:100%;
+  min-height:58px;
+  display:flex;
+  align-items:center;
+  padding:0 22px 0 56px;
+  color:#f4f9fc;
+  font-size:17px;
+  font-weight:600;
+  letter-spacing:.5px;
+  cursor:pointer;
+  border:1px solid rgba(92,231,255,.24);
+  background:
+    linear-gradient(90deg,rgba(92,231,255,.08),rgba(7,18,29,.94)),
+    rgba(7,18,29,.94);
+  clip-path:polygon(0 0,97% 0,100% 50%,97% 100%,0 100%,2% 50%);
+  transition:.25s ease;
+  user-select:none;
+}
+
+.wi-folder::before{
+  content:"▸";
+  position:absolute;
+  left:22px;
+  color:var(--blue);
+  font-size:20px;
+  transition:transform .25s ease;
+}
+
+.wi-folder::after{
+  content:"";
+  position:absolute;
+  left:8px;
+  top:0;
+  width:42%;
+  height:2px;
+  background:linear-gradient(90deg,var(--blue),transparent);
+  box-shadow:0 0 10px rgba(92,231,255,.35);
+}
+
+.wi-folder:hover{
+  transform:translateX(6px);
+  border-color:rgba(92,231,255,.72);
+  background:
+    linear-gradient(90deg,rgba(92,231,255,.15),rgba(7,18,29,.97)),
+    rgba(7,18,29,.97);
+  box-shadow:0 0 20px rgba(92,231,255,.08);
+}
+
+.wi-folder.open::before{
+  transform:rotate(90deg);
+}
+
+.wi-content{
+  display:none;
+  flex-direction:column;
+  gap:9px;
+  margin-left:28px;
+  padding:10px 0 4px 18px;
+  border-left:1px solid rgba(92,231,255,.22);
+}
+
+.wi-content.open{
+  display:flex;
+  animation:wiReveal .25s ease;
+}
+
+@keyframes wiReveal{
+  from{
+    opacity:0;
+    transform:translateY(-8px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+.wi-content button{
+  width:min(560px,100%);
+  min-height:48px;
+  padding:0 18px;
+  display:flex;
+  align-items:center;
+  color:#f4f9fc;
+  background:rgba(8,20,32,.82);
+  border:1px solid rgba(92,231,255,.18);
+  cursor:pointer;
+  text-align:left;
+  font-size:15px;
+  transition:.2s ease;
+  clip-path:polygon(0 0,96% 0,100% 50%,96% 100%,0 100%);
+}
+
+.wi-content button:hover{
+  transform:translateX(5px);
+  border-color:var(--yellow);
+  background:rgba(255,204,0,.08);
+  color:#fff;
+}
+
+#moduleView{
+  overflow-y:auto;
+}
+
+#moduleView::-webkit-scrollbar{
+  width:8px;
+}
+
+#moduleView::-webkit-scrollbar-thumb{
+  background:rgba(92,231,255,.30);
+}
+
+@media(max-width:700px){
+  .wi-explorer{
+    width:100%;
+  }
+
+  .wi-folder{
+    font-size:15px;
+    min-height:52px;
+    padding-left:48px;
+  }
+
+  .wi-content{
+    margin-left:14px;
+  }
+}
+
+
+
+/* Oculto por defecto: solo aparece en Procedimientos */
+#wiExplorer{
+  display:none;
+}
+
+#wiExplorer.visible{
+  display:flex;
+}
+
+
+.wi-file{
+  width:min(620px,100%);
+  min-height:58px;
+  padding:8px 22px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  color:#f4f9fc;
+  background:
+    linear-gradient(90deg,rgba(212,5,17,.08),rgba(8,20,32,.88));
+  border:1px solid rgba(92,231,255,.20);
+  cursor:pointer;
+  text-align:left;
+  transition:.22s ease;
+  clip-path:polygon(0 0,96% 0,100% 50%,96% 100%,0 100%);
+}
+
+.wi-file:hover{
+  transform:translateX(6px);
+  border-color:var(--yellow);
+  background:
+    linear-gradient(90deg,rgba(255,204,0,.12),rgba(8,20,32,.92));
+  box-shadow:0 0 18px rgba(255,204,0,.08);
+}
+
+.wi-file-icon{
+  flex:0 0 auto;
+  min-width:42px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  color:#fff;
+  background:var(--red);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:1px;
+  clip-path:polygon(0 0,82% 0,100% 50%,82% 100%,0 100%);
+}
+
+.wi-file-info{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.wi-file-info strong{
+  color:#fff;
+  font-size:15px;
+  font-weight:600;
+}
+
+.wi-file-info small{
+  color:var(--muted);
+  font-size:10px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+}
+
+
+
+
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="grid"></div>
+    <div class="scan"></div>
+    <div class="noise"></div>
+
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo-slot logo-slot-dhl">
+          <img
+            class="logo-dhl"
+            src="file:///D:/JARVIS/Imagenes/dhl_logo.png"
+            alt="Logo DHL"
+          >
+        </div>
+
+        <div class="logo-slot logo-slot-kraft">
+          <img
+            class="logo-kraft"
+           src="file:///D:/JARVIS/Imagenes/kraft_logo.png"
+            alt="Logo Kraft Heinz"
+          >
+        </div>
+      </div>
+
+      <div class="system-name">
+        <strong>JARVIS</strong>
+        <span>Logistics Intelligence Interface</span>
+      </div>
+
+      <div class="top-status">
+        <span class="online-dot"></span>
+        <span>Sistema operativo</span>
+      </div>
+    </header>
+
+    <section class="scene">
+      <div class="network">
+        <svg class="connections" viewBox="0 0 720 535" aria-hidden="true">
+          <path class="line" d="M360 267 L115 70" />
+          <path class="line hot" d="M360 267 L605 70" />
+          <path class="line" d="M360 267 L60 267" />
+          <path class="line" d="M360 267 L660 267" />
+          <path class="line hot" d="M360 267 L150 475" />
+          <path class="line" d="M360 267 L570 475" />
+
+          <path class="pulse-path" d="M360 267 L115 70" />
+          <path class="pulse-path two" d="M360 267 L660 267" />
+          <path class="pulse-path three" d="M360 267 L150 475" />
+        </svg>
+
+        <button class="node n1" data-module="Procedimientos">
+          <strong>Procedimientos</strong>
+          <span>Work Instructions</span>
+        </button>
+
+        <button class="node n2" data-module="Seguridad HSE">
+          <strong>Seguridad HSE</strong>
+          <span>Ingreso y emergencias</span>
+        </button>
+
+        <button class="node n3" data-module="Operaciones">
+          <strong>Operaciones</strong>
+          <span>Procesos del centro</span>
+        </button>
+
+        <button class="node n4" data-module="Calidad">
+          <strong>Calidad</strong>
+          <span>QRA y estándares</span>
+        </button>
+
+        <button class="node n5" data-module="Biblioteca">
+          <strong>Biblioteca</strong>
+          <span>Documentación local</span>
+        </button>
+
+        <button class="node n6" data-module="Nuestro equipo">
+          <strong>Nuestro equipo</strong>
+          <span>Personas y roles</span>
+        </button>
+
+        <div class="orb-shell" id="core">
+          <canvas id="orbCanvas"></canvas>
+          <div class="orb-label">
+            <strong>JARVIS</strong>
+            <span>ONLINE</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="message">
+        <div class="message-label">Mensaje del sistema</div>
+        <div class="message-text" id="messageText"></div>
+      </div>
+    </section>
+
+    <button class="dialog-button" id="dialogButton">Diálogo táctico</button>
+    <button class="voice-button" id="voiceButton">Activar voz</button>
+
+    <footer class="footer">
+      <div class="left">DHL Supply Chain · Chile</div>
+      <div class="clock" id="clock">--:--:--</div>
+      <div></div>
+    </footer>
+
+    <div class="safety-hud" aria-label="Días sin accidentes">
+      <span class="safety-dot" aria-hidden="true"></span>
+      <span class="safety-number" id="days">0</span>
+      <span class="safety-text">Días sin accidentes</span>
+    </div>
+
+    <section class="module-view" id="moduleView">
+      <button class="close-button" id="closeModule">×</button>
+      <h2 id="moduleTitle">Módulo</h2>
+      <p id="moduleDescription"></p>
+
+
+<!-- ==========================
+     WORK INSTRUCTIONS
+========================== -->
+
+
+
+
+<div id="wiExplorer" class="wi-explorer">
+
+    <div class="wi-folder" onclick="toggleFolder('sop')">
+        📁 SOP
+    </div>
+
+    <div id="sop" class="wi-content">
+
+        <div class="wi-folder" onclick="toggleFolder('sopInbound')">
+            📁 Inbound
+        </div>
+
+<div id="sopInbound" class="wi-content">
+
+    <button
+        class="wi-file"
+        onclick="openFile('file:///D:/JARVIS/Wi/SOP/Inbound/SOP%20Recepción%20Kraft%202025.PDF')">
+        <span class="wi-file-icon">PDF</span>
+
+        <span class="wi-file-info">
+            <strong>SOP Recepción Kraft 2025</strong>
+            <small>SOP · Inbound</small>
+        </span>
+    </button>
+
+</div>
+
+
+        <div class="wi-folder" onclick="toggleFolder('sopInventario')">
+            📁 Inventario
+        </div>
+
+        
+
+        <div id="sopInventario" class="wi-content">
+
+    <button
+        class="wi-file"
+        onclick="openFile('file:///D:/JARVIS/Wi/SOP/Inventario/SOP%20Inventario%20Jun%202025.PDF')">
+
+        <span class="wi-file-icon">PDF</span>
+
+        <span class="wi-file-info">
+            <strong>SOP Inventario Jun 2025</strong>
+            <small>SOP · Inventario</small>
+        </span>
+
+    </button>
+
+</div>
+
+
+        <div class="wi-folder" onclick="toggleFolder('sopOutbound')">
+            📁 Outbound
+        </div>
+
+
+        
+
+        <div id="sopOutbound" class="wi-content">
+
+    <button
+        class="wi-file"
+        onclick="openFile('file:///D:/JARVIS/Wi/SOP/Outbound/SOP%20Preparación%20de%20Pedidos%20y%20Deaspacho%20Kraft%202025.pdf')">
+
+        <span class="wi-file-icon">PDF</span>
+
+        <span class="wi-file-info">
+            <strong>SOP Preparación de Pedidos y Deaspacho Kraft 2025</strong>
+            <small>SOP · Outbound</small>
+        </span>
+
+    </button>
+
+</div>
+
+
+        <div class="wi-folder" onclick="toggleFolder('sopPac')">
+            📁 PAC
+        </div>
+
+        <div id="sopPac" class="wi-content">
+
+    <button class="wi-file"
+        onclick="openFile('file:///D:/JARVIS/Wi/SOP/PAC/Administración%20de%20EPP%20(1).pdf')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Administración de EPP</strong>
+            <small>SOP · PAC</small>
+        </span>
+    </button>
+
+    <button class="wi-file"
+        onclick="openFile('file:///D:/JARVIS/Wi/SOP/PAC/Control%20de%20cambios%20Kraft.pdf')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Control de cambios Kraft</strong>
+            <small>SOP · PAC</small>
+        </span>
+    </button>
+
+    <button class="wi-file"
+        onclick="openFile('file:///D:/JARVIS/Wi/SOP/PAC/Prevención%20Contaminación%20Cruzada.pdf')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Prevención Contaminación Cruzada</strong>
+            <small>SOP · PAC</small>
+        </span>
+    </button>
+
+<button class="wi-file"
+onclick="openFile('file:///D:/JARVIS/Wi/SOP/PAC/Procedimiento%20Manejo%20de%20Reclamos_1.pdf')">
+
+    <span class="wi-file-icon">PDF</span>
+
+    <span class="wi-file-info">
+        <strong>Procedimiento Manejo de Reclamos</strong>
+        <small>SOP · PAC</small>
+    </span>
+
+</button>
+
+<button class="wi-file"
+onclick="openFile('file:///D:/JARVIS/Wi/SOP/PAC/SOP-154929_Salud_e_Higiene_del_Personal.pdf')">
+
+    <span class="wi-file-icon">PDF</span>
+
+    <span class="wi-file-info">
+        <strong>Salud e Higiene del Personal</strong>
+        <small>SOP · PAC</small>
+    </span>
+
+</button>
+
+<button class="wi-file"
+onclick="openFile('file:///D:/JARVIS/Wi/SOP/PAC/SOP-%20154959%20Manejo%20de%20Residuos%20No%20Peligrosos.pdf')">
+
+    <span class="wi-file-icon">PDF</span>
+
+    <span class="wi-file-info">
+        <strong>Manejo de Residuos</strong>
+        <small>SOP · PAC</small>
+    </span>
+
+</button>
+
+<button class="wi-file"
+onclick="openFile('file:///D:/JARVIS/Wi/SOP/PAC/SOP-155014%20Mermas%20y%20Recuperación%20(PNC)%20(1).pdf')">
+
+    <span class="wi-file-icon">PDF</span>
+
+    <span class="wi-file-info">
+        <strong>Mermas y Recuperación</strong>
+        <small>SOP · PAC</small>
+    </span>
+
+</button>
+
+</div>
+
+
+        <div class="wi-folder" onclick="toggleFolder('sopPackaging')">
+            📁 Packaging
+        </div>
+
+<div id="sopPackaging" class="wi-content">
+
+    <button
+        class="wi-file"
+        onclick="openFile('file:///D:/JARVIS/Wi/SOP/Packaging/SOP%20VAS%20Kraft%202025.PDF')">
+
+        <span class="wi-file-icon">PDF</span>
+
+        <span class="wi-file-info">
+            <strong>SOP VAS Kraft 2025</strong>
+            <small>SOP · Packaging</small>
+        </span>
+
+    </button>
+
+</div>
+
+    </div>
+
+
+    <div class="wi-folder" onclick="toggleFolder('wihs')">
+        📁 WI WHS
+    </div>
+
+<div id="wihs" class="wi-content">
+
+    <div class="wi-folder" onclick="toggleFolder('wihsInbound')">
+        📁 Inbound
+    </div>
+
+<div id="wihsInbound" class="wi-content">
+
+    <button class="wi-file"
+onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inbound/CHL-GUA-KRA-INB-WI-004%20%20Check%20In%20Camión%20(V03%20022023).PDF')"
+
+        <span class="wi-file-icon">PDF</span>
+
+
+        <span class="wi-file-info">
+            <strong>Check In Camión</strong>
+            <small>WI WHS · Inbound</small>
+        </span>
+
+    </button>
+
+
+    <button class="wi-file"
+onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inbound/CHL-GUA-KRA-INB-WI-007%20%20Putaway%20(v03%20032023).PDF')"
+        <span class="wi-file-icon">PDF</span>
+
+        <span class="wi-file-info">
+            <strong>Putaway</strong>
+            <small>WI WHS · Inbound</small>
+        </span>
+
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inbound/Creación%20Camión%20In%20WI-154933(v04%20082025).PDF')">
+
+        <span class="wi-file-icon">PDF</span>
+
+        <span class="wi-file-info">
+            <strong>Creación Camión In</strong>
+            <small>WI WHS · Inbound</small>
+        </span>
+
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inbound/Creación%20Inbound%20Shipments.PDF')">
+
+        <span class="wi-file-icon">PDF</span>
+
+        <span class="wi-file-info">
+            <strong>Creación Inbound Shipments</strong>
+            <small>WI WHS · Inbound</small>
+        </span>
+
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inbound/Descarga%20de%20Camión%20WI-154945.PDF')">
+
+        <span class="wi-file-icon">PDF</span>
+
+        <span class="wi-file-info">
+            <strong>Descarga de Camión</strong>
+            <small>WI WHS · Inbound</small>
+        </span>
+
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inbound/Identify%20WI-154950.PDF')">
+
+        <span class="wi-file-icon">PDF</span>
+
+        <span class="wi-file-info">
+            <strong>Identify</strong>
+            <small>WI WHS · Inbound</small>
+        </span>
+
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inbound/Recepción%20Camión(v4%20102025).xlsm')">
+
+        <span class="wi-file-icon">XLSM</span>
+
+        <span class="wi-file-info">
+            <strong>Recepción Camión</strong>
+            <small>Plantilla · XLSM</small>
+        </span>
+
+    </button>
+
+</div>
+
+
+    <div class="wi-folder" onclick="toggleFolder('wihsInventario')">
+        📁 Inventario
+    </div>
+
+<div id="wihsInventario" class="wi-content">
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inventario/Ajuste%20WI-%20157621%20(1).PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Ajuste WI</strong>
+            <small>WI WHS · Inventario</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inventario/Conteo%20Batch%20y%20Conteo%20Cíclico.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Conteo Batch y Conteo Cíclico</strong>
+            <small>WI WHS · Inventario</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inventario/Creación%20de%20Lote%20WI-157601.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Creación de Lote</strong>
+            <small>WI WHS · Inventario</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inventario/Devoluciones%20WI-157624.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Devoluciones</strong>
+            <small>WI WHS · Inventario</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inventario/Liberación%20de%20Seremi%20y%20Cambio%20de%20Estado%20WI-157622.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Liberación de Seremi y Cambio de Estado</strong>
+            <small>WI WHS · Inventario</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inventario/Pallet%20Position%20(v04%20092025).PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Pallet Position</strong>
+            <small>WI WHS · Inventario</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Inventario/WI%20Ajustes%20ICB%20Sin%20Viaje%20de%20Interfaz.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>WI Ajustes ICB Sin Viaje de Interfaz</strong>
+            <small>WI WHS · Inventario</small>
+        </span>
+    </button>
+
+</div>
+
+
+    <div class="wi-folder" onclick="toggleFolder('wihsOutbound')">
+        📁 Outbound
+    </div>
+
+<div id="wihsOutbound" class="wi-content">
+
+    <button class="wi-file"
+onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Outbound/Allocado%20Wave%20%20WI-158162.PDF')">
+
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Allocated Wave</strong>
+            <small>WI WHS · Outbound</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Outbound/Asignación%20de%20Tarea%20WI-158163.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Asignación de Tarea</strong>
+            <small>WI WHS · Outbound</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Outbound/Carga%20a%20Camión%20(v03%20092025).PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Carga a Camión</strong>
+            <small>WI WHS · Outbound</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Outbound/Carga%20por%20RF%20a%20DCK%20(v3%20102025).PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Carga por RF a DCK</strong>
+            <small>WI WHS · Outbound</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Outbound/Cerrar%20y%20Despachar%20Camión%20WI-158171.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Cerrar y Despachar Camión</strong>
+            <small>WI WHS · Outbound</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Outbound/Check-In%20Camión%20WI-158168.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Check-In Camión</strong>
+            <small>WI WHS · Outbound</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Outbound/Conferencia%20Outbound(v4%20102015).PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Conferencia Outbound</strong>
+            <small>WI WHS · Outbound</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Outbound/Pallet%20Pick%20WI-158165.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Pallet Pick</strong>
+            <small>WI WHS · Outbound</small>
+        </span>
+    </button>
+
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20WHS/Outbound/Short%20Operacional%20WI-158164.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Short Operacional</strong>
+            <small>WI WHS · Outbound</small>
+        </span>
+    </button>
+
+</div>
+
+</div>
+
+
+    <div class="wi-folder" onclick="toggleFolder('pack')">
+        📁 WI Packaging
+    </div>
+
+    <div id="pack" class="wi-content">
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20PACKAGING/Doble%20Etiquetado%20Caja%20WI-158195.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Doble Etiquetado Caja</strong>
+            <small>WI · Packaging</small>
+        </span>
+    </button>
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20PACKAGING/Etiquetado%20Unitario%20WI-158194.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Etiquetado Unitario</strong>
+            <small>WI · Packaging</small>
+        </span>
+    </button>
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20PACKAGING/Impresión%20y%20Control%20de%20Etiquetado%20WI-158196.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Impresión y Control de Etiquetado</strong>
+            <small>WI · Packaging</small>
+        </span>
+    </button>
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20PACKAGING/Maquina%20Enfiladora%20WI-158197.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Máquina Enfiladora</strong>
+            <small>WI · Packaging</small>
+        </span>
+    </button>
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20PACKAGING/Operador%20de%20Grúa%20Packaging%20WI-158202.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Operador de Grúa Packaging</strong>
+            <small>WI · Packaging</small>
+        </span>
+    </button>
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20PACKAGING/Ordenes%20para%20Maquilado%20WI-158199.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Órdenes para Maquilado</strong>
+            <small>WI · Packaging</small>
+        </span>
+    </button>
+
+    <button class="wi-file"
+    onclick="openFile('file:///D:/JARVIS/Wi/WI%20PACKAGING/Receiving%20Packaging%20WI-158201.PDF')">
+        <span class="wi-file-icon">PDF</span>
+        <span class="wi-file-info">
+            <strong>Receiving Packaging</strong>
+            <small>WI · Packaging</small>
+        </span>
+    </button>
+
+</div>
+
+</div>
+
+
+
+    </section>
+
+    <section class="dialog-overlay" id="dialogOverlay" aria-hidden="true">
+      <div class="dialog-window" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+        <div class="dialog-header">
+          <div class="dialog-title">
+            <strong id="dialogTitle">Diálogo táctico</strong>
+            <span>DHL Kraft Heinz · Documento operacional</span>
+          </div>
+
+          <button class="dialog-close" id="dialogClose" aria-label="Cerrar diálogo táctico">×</button>
+        </div>
+
+        <div class="dialog-content">
+          <div class="dialog-loading" id="dialogLoading">Cargando diálogo táctico...</div>
+
+<img
+    class="dialog-image"
+    id="dialogImage"
+    src="file:///D:/JARVIS/Documentos/DialogoTactico.png"
+    alt="Diálogo táctico Kraft Heinz">
+          >
+        </div>
+      </div>
+    </section>
+
+    <section class="boot" id="boot">
+      <div class="boot-box">
+        <div class="boot-title">DHL Kraft Heinz</div>
+        <div class="boot-main">JARVIS</div>
+        <div class="boot-line"></div>
+        <div class="boot-status" id="bootStatus">Inicializando red logística...</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const LAST_ACCIDENT_DATE = "2026-06-04";
+    const DAILY_CAPACITY = 400;
+
+    const boot = document.getElementById("boot");
+    const bootStatus = document.getElementById("bootStatus");
+    const messageText = document.getElementById("messageText");
+    const voiceButton = document.getElementById("voiceButton");
+    const dialogButton = document.getElementById("dialogButton");
+    const dialogOverlay = document.getElementById("dialogOverlay");
+    const dialogClose = document.getElementById("dialogClose");
+    const dialogImage = document.getElementById("dialogImage");
+    const dialogLoading = document.getElementById("dialogLoading");
+    const core = document.getElementById("core");
+    const moduleView = document.getElementById("moduleView");
+    const moduleTitle = document.getElementById("moduleTitle");
+    const moduleDescription = document.getElementById("moduleDescription");
+    const wiExplorer = document.getElementById("wiExplorer");
+
+    let voiceEnabled = false;
+    let messageIndex = 0;
+    let messageTimer = null;
+
+    function daysWithoutAccidents(){
+      const last = new Date(LAST_ACCIDENT_DATE + "T00:00:00");
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      return Math.max(0, Math.floor((today - last) / 86400000));
+    }
+
+  function getGreeting(){
+  const hour = new Date().getHours();
+
+  if(hour < 12){
+    return "Buenos días.";
+  }
+
+  if(hour < 19){
+    return "Buenas tardes.";
+  }
+
+  return "Buenas noches.";
+}
+
+
+    function getMessages(){
+
+  return [
+
+    `${getGreeting()} Bienvenido a DHL Supply Chain Kraft Heinz.`,
+
+    "Mi nombre es Jarvis. Soy el asistente virtual de la operación y estoy aquí para ayudarte durante tu recorrido.",
+
+    `Nuestra capacidad diaria aproximada es de ${DAILY_CAPACITY} pallets.`,
+
+    `Actualmente llevamos ${daysWithoutAccidents()} días sin accidentes. La seguridad es responsabilidad de todos.`,
+
+    "Toda nueva idea comienza con una pregunta sencilla: ¿Cómo podemos hacerlo mejor?",
+    
+    "Antes de ingresar a la operación, verifica que utilizas calzado de seguridad, chaleco reflectante y los elementos de protección personal requeridos.",
+    
+    "Bajo el liderazgo de Danilo Marchant, continuamos impulsando iniciativas orientadas a la innovación y la mejora continua.",
+
+    "Si vas a realizar trabajos manuales, recuerda utilizar guantes y seguir los procedimientos establecidos.",
+
+    "En DHL creemos que la excelencia operacional comienza con las personas.",
+
+    "La seguridad, la calidad y el servicio son parte de cada decisión que tomamos.",
+
+    "En DHL estamos comprometidos con las iniciativas GoGreen para construir una logística más sustentable.",
+    
+    "La seguridad siempre será nuestra prioridad número uno.",
+
+    "La innovación y la sustentabilidad forman parte de nuestra estrategia global.",
+
+    "Ninguna tarea es tan urgente como para realizarla de forma insegura.",
+
+    "Si necesitas conocer un proceso específico, selecciona el módulo correspondiente para acceder a su información.",
+
+    "La calidad no se inspecciona al final del proceso; se construye en cada etapa.",
+
+    "La innovación impulsa el futuro de DHL Supply Chain.",
+
+    "El conocimiento compartido fortalece a todo el equipo.",
+
+    "Hoy es una nueva oportunidad para hacer las cosas mejor que ayer.",
+
+    "Trabajemos juntos para regresar seguros a casa al finalizar la jornada.",
+
+    "Si detectas una condición insegura, repórtala inmediatamente.",
+
+    "Fui desarrollado por Francisco Oviedo con el fin de facilitar el acceso a la información de la operación.",
+
+    "Hoy es una nueva oportunidad para hacer las cosas mejor que ayer.",
+
+    "La innovación es el motor que impulsa el futuro de nuestra operación.",
+
+    "En DHL transformamos desafíos operacionales en oportunidades de mejora continua.",
+
+    "La tecnología nos permite trabajar de forma más inteligente, segura y eficiente.",
+
+    "Si necesitas apoyo, puedes acercarte a tus coordinadores o al personal de Staff.",
+
+  ];
+
+}
+
+    function showMessage(text, speak = true){
+      clearTimeout(messageTimer);
+      messageText.classList.add("hide");
+
+      setTimeout(() => {
+        messageText.textContent = text;
+        messageText.classList.remove("hide");
+
+        if (voiceEnabled && speak){
+          speakText(text);
+        } else {
+          messageTimer = setTimeout(nextMessage, Math.max(3600, text.length * 55));
+        }
+      }, 450);
+    }
+
+    function nextMessage(){
+      const messages = getMessages();
+      showMessage(messages[messageIndex]);
+      messageIndex = (messageIndex + 1) % messages.length;
+    }
+
+
+    //Voz en español//
+    function getSpanishVoice(){
+      const voices = speechSynthesis.getVoices();
+      return (
+        voices.find(v => /paloma/i.test(v.name)) ||
+        voices.find(v => v.lang === "es-CL") ||
+        voices.find(v => v.lang.startsWith("es"))
+      );
+    }
+
+    function speakText(text){
+      if (!("speechSynthesis" in window)){
+        messageTimer = setTimeout(nextMessage, 4500);
+        return;
+      }
+
+      speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voice = getSpanishVoice();
+
+      if (voice) utterance.voice = voice;
+      utterance.lang = "es-CL";
+      utterance.rate = 0.92;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      utterance.onstart = () => setOrbSpeaking(true);
+
+      utterance.onend = () => {
+        setOrbSpeaking(false);
+        messageTimer = setTimeout(nextMessage, 1100);
+      };
+
+      utterance.onerror = () => {
+        setOrbSpeaking(false);
+        messageTimer = setTimeout(nextMessage, 2500);
+      };
+
+      speechSynthesis.speak(utterance);
+    }
+
+    function updateClock(){
+      const now = new Date();
+      document.getElementById("clock").textContent =
+        now.toLocaleTimeString("es-CL", {
+          hour:"2-digit",
+          minute:"2-digit",
+          second:"2-digit"
+        });
+
+      document.getElementById("days").textContent =
+        daysWithoutAccidents().toLocaleString("es-CL");
+    }
+
+    const moduleDescriptions = {
+      "Procedimientos":"Consulta instructivos y procedimientos operacionales disponibles en el dispositivo.",
+      "Seguridad HSE":"Revisa requisitos de ingreso, elementos de protección personal y procedimientos de emergencia.",
+      "Operaciones":"Explora los procesos principales de recepción, almacenamiento, inventario y despacho.",
+      "Calidad":"Accede a estándares QRA, controles y material relacionado con calidad.",
+      "Biblioteca":"Visualiza documentos, imágenes, videos y material de apoyo almacenado localmente.",
+      "Nuestro equipo":"Conoce a las personas, áreas y responsabilidades principales de la operación."
+    };
+
+document.querySelectorAll("[data-module]").forEach(button => {
+  button.addEventListener("click", () => {
+    const name = button.dataset.module;
+
+    moduleTitle.textContent = name;
+    moduleDescription.textContent = moduleDescriptions[name] || "";
+
+    // El explorador WI aparece únicamente en Procedimientos
+    wiExplorer.classList.toggle("visible", name === "Procedimientos");
+
+    moduleView.classList.add("open");
+
+    if (voiceEnabled){
+      speakText(`Abriendo módulo ${name}.`);
+    }
+  });
+});
+
+    document.getElementById("closeModule").addEventListener("click", () => {
+      moduleView.classList.remove("open");
+
+    // Ocultar Work Instructions
+    wiExplorer.classList.remove("visible");
+
+    // Cerrar todas las carpetas abiertas
+    document.querySelectorAll(".wi-content.open").forEach(folder => {
+        folder.classList.remove("open");
+    });
+
+    // Quitar flechas abiertas
+    document.querySelectorAll(".wi-folder.open").forEach(folder => {
+        folder.classList.remove("open");
+    });
+
+
+
+      if ("speechSynthesis" in window) speechSynthesis.cancel();
+      core.classList.remove("speaking");
+      messageTimer = setTimeout(nextMessage, 900);
+    });
+
+    function openTacticalDialog(){
+      clearTimeout(messageTimer);
+
+      if ("speechSynthesis" in window){
+        speechSynthesis.cancel();
+      }
+
+      setOrbSpeaking(false);
+      dialogOverlay.classList.add("open");
+      dialogOverlay.setAttribute("aria-hidden","false");
+      dialogClose.focus();
+    }
+
+    function closeTacticalDialog(){
+      dialogOverlay.classList.remove("open");
+      dialogOverlay.setAttribute("aria-hidden","true");
+      dialogButton.focus();
+      messageTimer = setTimeout(nextMessage,900);
+    }
+
+    dialogButton.addEventListener("click",openTacticalDialog);
+    dialogClose.addEventListener("click",closeTacticalDialog);
+
+    dialogOverlay.addEventListener("click",event => {
+      if (event.target === dialogOverlay){
+        closeTacticalDialog();
+      }
+    });
+
+    document.addEventListener("keydown",event => {
+      if (event.key === "Escape" && dialogOverlay.classList.contains("open")){
+        closeTacticalDialog();
+      }
+    });
+
+    dialogImage.addEventListener("load",() => {
+      dialogLoading.classList.add("hidden");
+    });
+
+    dialogImage.addEventListener("error",() => {
+      dialogLoading.textContent = "No fue posible cargar la imagen.";
+      dialogLoading.classList.remove("hidden");
+    });
+
+    voiceButton.addEventListener("click", () => {
+      voiceEnabled = !voiceEnabled;
+      voiceButton.textContent = voiceEnabled ? "Silenciar voz" : "Activar voz";
+
+      if (voiceEnabled){
+        showMessage("Sistema de voz activado.");
+      } else {
+        speechSynthesis.cancel();
+        setOrbSpeaking(false);
+        showMessage("Sistema de voz en pausa.", false);
+      }
+    });
+
+    window.speechSynthesis?.addEventListener?.("voiceschanged", getSpanishVoice);
+
+
+    /* ORBE ANIMADO */
+    const orbCanvas = document.getElementById("orbCanvas");
+    const orbCtx = orbCanvas.getContext("2d");
+    const orbDpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+    let orbW = 0;
+    let orbH = 0;
+    let orbCx = 0;
+    let orbCy = 0;
+    let orbEnergy = 0;
+    let orbTarget = 0;
+    let orbLast = performance.now();
+    const orbParticles = [];
+
+    function resizeOrb(){
+      const rect = orbCanvas.getBoundingClientRect();
+      orbW = rect.width;
+      orbH = rect.height;
+      orbCanvas.width = Math.floor(orbW * orbDpr);
+      orbCanvas.height = Math.floor(orbH * orbDpr);
+      orbCtx.setTransform(orbDpr,0,0,orbDpr,0,0);
+      orbCx = orbW / 2;
+      orbCy = orbH / 2;
+      seedOrb();
+    }
+
+    function seedOrb(){
+      orbParticles.length = 0;
+      for(let i=0;i<125;i++){
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.pow(Math.random(), .72) * Math.min(orbW,orbH) * .36;
+        orbParticles.push({
+          angle,
+          radius,
+          size:1.4 + Math.random()*3.8,
+          speed:.18 + Math.random()*.55,
+          alpha:.16 + Math.random()*.5,
+          phase:Math.random()*Math.PI*2,
+          warm:Math.random() < .12
+        });
+      }
+    }
+
+    function setOrbSpeaking(value){
+      orbTarget = value ? 1 : 0;
+      core.classList.toggle("speaking", value);
+    }
+
+    function drawOrb(now){
+      const dt = Math.min(.033,(now-orbLast)/1000);
+      orbLast = now;
+      const flutter = core.classList.contains("speaking") ? Math.random()*.18 : 0;
+      orbEnergy += ((orbTarget + flutter)-orbEnergy) * (orbTarget ? .18 : .08);
+
+      orbCtx.clearRect(0,0,orbW,orbH);
+
+      const fogR = Math.min(orbW,orbH) * (.34 + orbEnergy*.05);
+      const fog = orbCtx.createRadialGradient(orbCx,orbCy,0,orbCx,orbCy,fogR);
+      fog.addColorStop(0,`rgba(92,231,255,${.16 + orbEnergy*.22})`);
+      fog.addColorStop(.38,`rgba(92,231,255,${.08 + orbEnergy*.12})`);
+      fog.addColorStop(.7,`rgba(255,204,0,${.018 + orbEnergy*.035})`);
+      fog.addColorStop(1,"rgba(0,0,0,0)");
+      orbCtx.fillStyle = fog;
+      orbCtx.fillRect(0,0,orbW,orbH);
+
+      const nucleus = 12 + orbEnergy*12;
+      orbCtx.beginPath();
+      orbCtx.arc(orbCx,orbCy,nucleus,0,Math.PI*2);
+      orbCtx.fillStyle = `rgba(225,252,255,${.45 + orbEnergy*.4})`;
+      orbCtx.shadowBlur = 30 + orbEnergy*65;
+      orbCtx.shadowColor = "rgba(92,231,255,.85)";
+      orbCtx.fill();
+      orbCtx.shadowBlur = 0;
+
+      for(const p of orbParticles){
+        p.angle += dt * p.speed * (1 + orbEnergy*1.5);
+        const wobble = Math.sin(now*.0015 + p.phase) * (2 + orbEnergy*5);
+        const radius = p.radius + wobble;
+        const x = orbCx + Math.cos(p.angle)*radius;
+        const y = orbCy + Math.sin(p.angle)*radius*.82;
+        const size = p.size + orbEnergy*1.7;
+
+        orbCtx.beginPath();
+        orbCtx.arc(x,y,size,0,Math.PI*2);
+        orbCtx.fillStyle = p.warm
+          ? `rgba(255,204,0,${p.alpha + orbEnergy*.18})`
+          : `rgba(92,231,255,${p.alpha + orbEnergy*.22})`;
+        orbCtx.shadowBlur = 8 + orbEnergy*18;
+        orbCtx.shadowColor = p.warm ? "rgba(255,204,0,.48)" : "rgba(92,231,255,.55)";
+        orbCtx.fill();
+      }
+
+      orbCtx.shadowBlur = 0;
+
+      const ringCount = 3;
+      for(let i=0;i<ringCount;i++){
+        const base = Math.min(orbW,orbH) * (.19 + i*.065);
+        const pulse = Math.sin(now*.0012 + i*1.7) * 4;
+        orbCtx.beginPath();
+        orbCtx.ellipse(orbCx,orbCy,base+pulse,base*.72+pulse*.4,now*.00012*(i%2?1:-1),0,Math.PI*2);
+        orbCtx.strokeStyle = `rgba(92,231,255,${.09 + orbEnergy*.12})`;
+        orbCtx.lineWidth = 1;
+        orbCtx.stroke();
+      }
+
+      requestAnimationFrame(drawOrb);
+    }
+
+    window.addEventListener("resize", resizeOrb);
+    resizeOrb();
+    requestAnimationFrame(drawOrb);
+
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+    setTimeout(() => bootStatus.textContent = "Conectando módulos operacionales...", 900);
+    setTimeout(() => bootStatus.textContent = "Sistema preparado.", 1900);
+    setTimeout(() => {
+      boot.classList.add("done");
+      nextMessage();
+    }, 3100);
+
+    
+// ======================================
+// WORK INSTRUCTIONS
+// ======================================
+
+function toggleFolder(id){
+    const content = document.getElementById(id);
+    const trigger = content.previousElementSibling;
+
+    content.classList.toggle("open");
+
+    if (trigger && trigger.classList.contains("wi-folder")){
+        trigger.classList.toggle("open");
+    }
+}
+
+function openFolder(path){
+    window.open(path, "_blank");
+}
+
+function openFile(path){
+    window.open(path, "_blank");
+}
+
+  </script>
+</body>
+</html>
