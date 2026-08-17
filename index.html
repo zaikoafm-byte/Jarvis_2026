@@ -1339,6 +1339,32 @@
 
 
 
+
+
+    /* BOTÓN PANTALLA COMPLETA */
+    .fullscreen-button{
+      position:absolute;
+      right:32px;
+      bottom:188px;
+      min-width:170px;
+      height:42px;
+      padding:0 22px;
+      border:1px solid rgba(92,231,255,.48);
+      background:linear-gradient(90deg,rgba(92,231,255,.10),rgba(8,20,32,.88));
+      color:var(--text);
+      cursor:pointer;
+      clip-path:polygon(0 0,88% 0,100% 50%,88% 100%,0 100%);
+      z-index:12;
+      transition:.2s ease;
+    }
+    .fullscreen-button:hover,.fullscreen-button:focus-visible{
+      background:rgba(92,231,255,.16);
+      border-color:var(--blue);
+      box-shadow:0 0 20px rgba(92,231,255,.14);
+      outline:none;
+    }
+    @media(max-width:560px){.fullscreen-button{right:16px;bottom:180px;min-width:150px}}
+
   </style>
 </head>
 <body>
@@ -1440,6 +1466,7 @@
       </div>
     </section>
 
+    <button class="fullscreen-button" id="fullscreenButton" aria-label="Activar pantalla completa">⛶ Pantalla completa</button>
     <button class="dialog-button" id="dialogButton">Diálogo táctico</button>
     <button class="voice-button" id="voiceButton">Activar voz</button>
 
@@ -2488,6 +2515,33 @@ function openFolder(path){
 function openFile(path){
     window.open(path, "_blank");
 }
+
+  
+
+    // PANTALLA COMPLETA
+    const fullscreenButton = document.getElementById("fullscreenButton");
+
+    async function toggleFullscreen(){
+      try{
+        if (!document.fullscreenElement){
+          await document.documentElement.requestFullscreen();
+        } else {
+          await document.exitFullscreen();
+        }
+      } catch (error){
+        console.error("No fue posible cambiar el modo de pantalla completa:", error);
+      }
+    }
+
+    function updateFullscreenButton(){
+      if (!fullscreenButton) return;
+      const active = Boolean(document.fullscreenElement);
+      fullscreenButton.textContent = active ? "✕ Salir pantalla completa" : "⛶ Pantalla completa";
+      fullscreenButton.setAttribute("aria-label", active ? "Salir de pantalla completa" : "Activar pantalla completa");
+    }
+
+    fullscreenButton?.addEventListener("click", toggleFullscreen);
+    document.addEventListener("fullscreenchange", updateFullscreenButton);
 
   </script>
 </body>
